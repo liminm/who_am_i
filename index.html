@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhoAmI - Browser Fingerprint Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background-color: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            letter-spacing: 2px;
+        }
+
+        h1 span {
+            color: #4da8da;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #232340, #1e1e35);
+            border: 1px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(77, 168, 218, 0.15);
+            border-color: #4da8da;
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #4da8da;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 1rem;
+            color: #fff;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .card-value.loading {
+            color: #666;
+            font-style: italic;
+        }
+
+        .card-value.error {
+            color: #e74c3c;
+        }
+
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 1.1rem;
+            color: #4da8da;
+            padding: 1rem 0 0.5rem;
+            border-bottom: 1px solid #2a2a4a;
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        .copy-btn {
+            display: block;
+            margin: 3rem auto 1rem;
+            padding: 1rem 2.5rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background: linear-gradient(135deg, #4da8da, #3a8bc2);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #5bb8ea, #4a9bd2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(77, 168, 218, 0.3);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #27ae60, #219a52);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Who<span>Am</span>I</h1>
+        <p class="subtitle">Your browser fingerprint at a glance</p>
+    </header>
+
+    <main class="grid" id="dataGrid">
+        <!-- Network Section -->
+        <h2 class="section-title">🌐 Network</h2>
+        <div class="card">
+            <div class="card-label">Public IP</div>
+            <div class="card-value loading" id="ip">Loading...</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Location</div>
+            <div class="card-value loading" id="location">Loading...</div>
+        </div>
+        <div class="card">
+            <div class="card-label">ISP / Organization</div>
+            <div class="card-value loading" id="isp">Loading...</div>
+        </div>
+
+        <!-- Connection Section -->
+        <h2 class="section-title">📡 Connection</h2>
+        <div class="card">
+            <div class="card-label">Connection Type</div>
+            <div class="card-value" id="connectionType">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Downlink Speed</div>
+            <div class="card-value" id="downlink">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Round Trip Time</div>
+            <div class="card-value" id="rtt">—</div>
+        </div>
+
+        <!-- Hardware Section -->
+        <h2 class="section-title">🖥️ Hardware</h2>
+        <div class="card">
+            <div class="card-label">GPU Model</div>
+            <div class="card-value" id="gpu">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">GPU Vendor</div>
+            <div class="card-value" id="gpuVendor">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">CPU Cores</div>
+            <div class="card-value" id="cpuCores">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Device Memory</div>
+            <div class="card-value" id="ram">—</div>
+        </div>
+
+        <!-- Display Section -->
+        <h2 class="section-title">🖼️ Display</h2>
+        <div class="card">
+            <div class="card-label">Screen Resolution</div>
+            <div class="card-value" id="screenRes">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Viewport Size</div>
+            <div class="card-value" id="viewport">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Color Depth</div>
+            <div class="card-value" id="colorDepth">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Pixel Ratio</div>
+            <div class="card-value" id="pixelRatio">—</div>
+        </div>
+
+        <!-- Battery Section -->
+        <h2 class="section-title">🔋 Battery</h2>
+        <div class="card">
+            <div class="card-label">Battery Level</div>
+            <div class="card-value" id="batteryLevel">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Charging Status</div>
+            <div class="card-value" id="chargingStatus">—</div>
+        </div>
+
+        <!-- System Section -->
+        <h2 class="section-title">⚙️ System</h2>
+        <div class="card">
+            <div class="card-label">Platform</div>
+            <div class="card-value" id="platform">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">User Agent</div>
+            <div class="card-value" id="userAgent">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Language</div>
+            <div class="card-value" id="language">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Timezone</div>
+            <div class="card-value" id="timezone">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Cookies Enabled</div>
+            <div class="card-value" id="cookies">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Do Not Track</div>
+            <div class="card-value" id="dnt">—</div>
+        </div>
+    </main>
+
+    <button class="copy-btn" id="copyBtn">📋 Copy All Data</button>
+
+    <footer>
+        <p>WhoAmI Dashboard — All data is fetched client-side</p>
+    </footer>
+
+    <script>
+        // Data storage for copy functionality
+        const collectedData = {};
+
+        // Helper function to set card value
+        function setValue(id, value, isError = false) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value;
+                el.classList.remove('loading');
+                if (isError) {
+                    el.classList.add('error');
+                }
+            }
+            collectedData[id] = value;
+        }
+
+        // ===== Network Data (Async) =====
+        async function fetchNetworkData() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                setValue('ip', data.ip || 'Unknown');
+                setValue('location', `${data.city || '—'}, ${data.region || '—'}, ${data.country_name || '—'}`);
+                setValue('isp', data.org || 'Unknown');
+            } catch (error) {
+                setValue('ip', 'Failed to fetch', true);
+                setValue('location', 'Failed to fetch', true);
+                setValue('isp', 'Failed to fetch', true);
+            }
+        }
+
+        // ===== Connection Info =====
+        function getConnectionInfo() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (connection) {
+                setValue('connectionType', connection.effectiveType?.toUpperCase() || 'Unknown');
+                setValue('downlink', connection.downlink ? `${connection.downlink} Mbps` : 'Unknown');
+                setValue('rtt', connection.rtt ? `${connection.rtt} ms` : 'Unknown');
+            } else {
+                setValue('connectionType', 'Not supported');
+                setValue('downlink', 'Not supported');
+                setValue('rtt', 'Not supported');
+            }
+        }
+
+        // ===== GPU Info via WebGL =====
+        function getGPUInfo() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                        setValue('gpu', renderer || 'Unknown');
+                        setValue('gpuVendor', vendor || 'Unknown');
+                    } else {
+                        setValue('gpu', gl.getParameter(gl.RENDERER) || 'Debug info blocked');
+                        setValue('gpuVendor', gl.getParameter(gl.VENDOR) || 'Debug info blocked');
+                    }
+                } else {
+                    setValue('gpu', 'WebGL not supported');
+                    setValue('gpuVendor', 'WebGL not supported');
+                }
+            } catch (e) {
+                setValue('gpu', 'Error detecting GPU');
+                setValue('gpuVendor', 'Error detecting GPU');
+            }
+        }
+
+        // ===== Hardware Info =====
+        function getHardwareInfo() {
+            // CPU Cores
+            setValue('cpuCores', navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} cores` : 'Unknown');
+            
+            // RAM
+            if (navigator.deviceMemory) {
+                setValue('ram', `${navigator.deviceMemory} GB`);
+            } else {
+                setValue('ram', 'Not available');
+            }
+        }
+
+        // ===== Display Info =====
+        function getDisplayInfo() {
+            setValue('screenRes', `${window.screen.width} × ${window.screen.height}`);
+            setValue('viewport', `${window.innerWidth} × ${window.innerHeight}`);
+            setValue('colorDepth', `${window.screen.colorDepth}-bit`);
+            setValue('pixelRatio', window.devicePixelRatio?.toFixed(2) || '1');
+        }
+
+        // ===== Battery Info =====
+        async function getBatteryInfo() {
+            try {
+                if ('getBattery' in navigator) {
+                    const battery = await navigator.getBattery();
+                    
+                    const updateBatteryInfo = () => {
+                        setValue('batteryLevel', `${Math.round(battery.level * 100)}%`);
+                        setValue('chargingStatus', battery.charging ? '⚡ Charging' : '🔌 Not charging');
+                    };
+                    
+                    updateBatteryInfo();
+                    
+                    // Listen for changes
+                    battery.addEventListener('levelchange', updateBatteryInfo);
+                    battery.addEventListener('chargingchange', updateBatteryInfo);
+                } else {
+                    setValue('batteryLevel', 'Not supported');
+                    setValue('chargingStatus', 'Not supported');
+                }
+            } catch (e) {
+                setValue('batteryLevel', 'Not available');
+                setValue('chargingStatus', 'Not available');
+            }
+        }
+
+        // ===== System Info =====
+        function getSystemInfo() {
+            setValue('platform', navigator.platform || 'Unknown');
+            setValue('userAgent', navigator.userAgent || 'Unknown');
+            setValue('language', navigator.language || 'Unknown');
+            setValue('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown');
+            setValue('cookies', navigator.cookieEnabled ? 'Yes' : 'No');
+            setValue('dnt', navigator.doNotTrack === '1' ? 'Enabled' : 'Disabled');
+        }
+
+        // ===== Copy All Data =====
+        function copyAllData() {
+            const labels = {
+                ip: 'Public IP',
+                location: 'Location',
+                isp: 'ISP / Organization',
+                connectionType: 'Connection Type',
+                downlink: 'Downlink Speed',
+                rtt: 'Round Trip Time',
+                gpu: 'GPU Model',
+                gpuVendor: 'GPU Vendor',
+                cpuCores: 'CPU Cores',
+                ram: 'Device Memory',
+                screenRes: 'Screen Resolution',
+                viewport: 'Viewport Size',
+                colorDepth: 'Color Depth',
+                pixelRatio: 'Pixel Ratio',
+                batteryLevel: 'Battery Level',
+                chargingStatus: 'Charging Status',
+                platform: 'Platform',
+                userAgent: 'User Agent',
+                language: 'Language',
+                timezone: 'Timezone',
+                cookies: 'Cookies Enabled',
+                dnt: 'Do Not Track'
+            };
+
+            let textOutput = '=== WhoAmI Browser Fingerprint ===\n\n';
+            
+            for (const [key, label] of Object.entries(labels)) {
+                textOutput += `${label}: ${collectedData[key] || '—'}\n`;
+            }
+            
+            textOutput += `\nGenerated: ${new Date().toISOString()}`;
+
+            navigator.clipboard.writeText(textOutput).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy All Data';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy data to clipboard');
+            });
+        }
+
+        // ===== Initialize =====
+        function init() {
+            // Synchronous data gathering
+            getConnectionInfo();
+            getGPUInfo();
+            getHardwareInfo();
+            getDisplayInfo();
+            getSystemInfo();
+            
+            // Async data gathering
+            fetchNetworkData();
+            getBatteryInfo();
+            
+            // Copy button
+            document.getElementById('copyBtn').addEventListener('click', copyAllData);
+            
+            // Update viewport on resize
+            window.addEventListener('resize', () => {
+                setValue('viewport', `${window.innerWidth} × ${window.innerHeight}`);
+            });
+        }
+
+        // Run on DOM ready
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
